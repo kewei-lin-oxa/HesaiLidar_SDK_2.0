@@ -41,7 +41,7 @@
   #define RING_PCL_STR
 #endif
 #ifdef ENABLE_INTENSITY
-  #define INTENSITY_PCL_STR  (std::uint8_t, intensity, intensity)
+  #define INTENSITY_PCL_STR  (float, intensity, intensity)
 #else
   #define INTENSITY_PCL_STR
 #endif
@@ -69,7 +69,7 @@ struct PointXYZIT {
   uint16_t ring;                   
 #endif
 #ifdef ENABLE_INTENSITY
-  uint8_t intensity;
+  float intensity;
 #endif
 #ifdef ENABLE_CONFIDENCE
   uint8_t confidence;
