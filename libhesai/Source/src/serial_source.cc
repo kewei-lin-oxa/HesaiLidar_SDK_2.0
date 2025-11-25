@@ -41,6 +41,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <string>
 #include <chrono>
+#ifdef __APPLE__
+#include <termios.h>
+#include <sys/ioctl.h>
+#endif
 
 using namespace hesai::lidar;
 SerialSource::SerialSource(const std::string dev, int baudrate, int point_cloud_baudrate) {
@@ -150,6 +154,37 @@ int SerialSource::Open(const char *dev, int baudrate) {
     return -1;
   }
 
+#ifdef __APPLE__
+    struct termios tio;
+    if (tcgetattr(m_iFd, &tio) < 0) {
+        perror("tcgetattr");
+        return -1;
+    }
+
+    cfsetispeed(&tio, baudrate);
+    cfsetospeed(&tio, baudrate);
+
+    tio.c_cflag |= (CLOCAL | CREAD);
+    tio.c_cflag &= ~CSIZE;
+    tio.c_cflag |= CS8;
+    tio.c_cflag &= ~PARENB;
+    tio.c_cflag &= ~CSTOPB;
+    tio.c_cflag &= ~CRTSCTS;
+
+    tio.c_iflag &= ~(IXON | IXOFF | IXANY);
+    tio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+    tio.c_oflag &= ~OPOST;
+
+    tio.c_cc[VMIN] = 0;
+    tio.c_cc[VTIME] = 1;
+
+    if (tcsetattr(m_iFd, TCSANOW, &tio) < 0) {
+        perror("tcsetattr");
+        close(m_iFd);
+        m_iFd= -1;
+        return -1;
+    }
+#else
   struct termios2 tio { };
   if (0 != ioctl(m_iFd, TCGETS2, &tio)) {
     // perror("ioctl");
@@ -181,6 +216,7 @@ int SerialSource::Open(const char *dev, int baudrate) {
     m_iFd= -1;
     return -1;
   }
+#endif
 #endif
   return 0;
 }

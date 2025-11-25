@@ -5,6 +5,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
+#include <boost/filesystem.hpp>
 
 /* ------------Select the fields to be exported ------------ */
 #define ENABLE_TIMESTAMP
@@ -19,12 +20,12 @@
 // #define SAVE_PCD_FILE_BIN
 // #define SAVE_PCD_FILE_BIN_COMPRESSED
 // #define SAVE_PLY_FILE
-// #define ENABLE_VIEWER
+#define ENABLE_VIEWER
 
 /* -------------------Select the test mode ------------------- */
-// #define LIDAR_PARSER_TEST
+#define LIDAR_PARSER_TEST
 // #define SERIAL_PARSER_TEST
-#define PCAP_PARSER_TEST
+// #define PCAP_PARSER_TEST
 // #define EXTERNAL_INPUT_PARSER_TEST
 // #define LIDAR_PARSER_TCP_TEST
 
@@ -79,8 +80,7 @@ struct PointXYZIT {
 #ifdef ENABLE_ENV_LIGHT
   uint8_t envLight;
 #endif
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW  
-} EIGEN_ALIGN16;                   
+};                   
 
 POINT_CLOUD_REGISTER_POINT_STRUCT(
     PointXYZIT,

@@ -31,6 +31,15 @@
 #define PTC_1_0_PARSER_H_
 #ifdef _MSC_VER
 #endif
+
+#ifndef htobe32
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define htobe32(x) __builtin_bswap32(x)
+#else
+#define htobe32(x) (x)
+#endif
+#endif
+
 #include <iostream>
 #include <fstream>
 #include "general_ptc_parser.h"
