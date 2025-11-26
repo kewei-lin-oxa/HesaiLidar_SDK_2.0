@@ -6,6 +6,8 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 #include <boost/filesystem.hpp>
+#include <string>
+#include <iostream>
 
 /* ------------Select the fields to be exported ------------ */
 #define ENABLE_TIMESTAMP
@@ -23,7 +25,7 @@
 #define ENABLE_VIEWER
 
 /* -------------------Select the test mode ------------------- */
-#define LIDAR_PARSER_TEST
+// #define LIDAR_PARSER_TEST
 // #define SERIAL_PARSER_TEST
 // #define PCAP_PARSER_TEST
 // #define EXTERNAL_INPUT_PARSER_TEST
@@ -165,61 +167,87 @@ void PclViewerInit(std::shared_ptr<PCLVisualizer>& pcl_viewer) {
   return;
 }
 
+void print_help() {
+    std::cout << "Usage: pcl_tool [options]\n"
+              << "Options:\n"
+              << "  --pcap <file_path>        Run in PCAP replay mode.\n"
+              << "  --correction <file_path>  Path to correction file. Needed for PCAP mode or live mode without PTC.\n"
+              << "  --firetimes <file_path>   Path to firetimes file. Needed for PCAP mode or live mode without PTC.\n"
+              << "  --gpu                     Enable GPU acceleration.\n"
+              << "  -h, --help                Show this help message.\n"
+              << "Defaults to live UDP data mode if --pcap is not specified." << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
+    std::string pcap_path = "";
+    std::string correction_path = "";
+    std::string firetimes_path = "";
+    bool use_pcap = false;
+    bool use_gpu = false;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "-h" || arg == "--help") {
+            print_help();
+            return 0;
+        } else if (arg == "--pcap" && i + 1 < argc) {
+            use_pcap = true;
+            pcap_path = argv[++i];
+        } else if (arg == "--correction" && i + 1 < argc) {
+            correction_path = argv[++i];
+        } else if (arg == "--firetimes" && i + 1 < argc) {
+            firetimes_path = argv[++i];
+        } else if (arg == "--gpu") {
+            use_gpu = true;
+        }
+    }
+
 #ifdef ENABLE_VIEWER   
   PclViewerInit(pcl_viewer);
 #endif 
   HesaiLidarSdk<PointXYZIT> sample;
   DriverParam param;
-  // assign param
-  param.use_gpu = (argc > 1);
-  // assign param
-#ifdef LIDAR_PARSER_TEST
-  param.input_param.source_type = DATA_FROM_LIDAR;
-  param.input_param.device_ip_address = "192.168.1.201";  // lidar ip
-  param.input_param.ptc_port = 9347; // lidar ptc port
-  param.input_param.udp_port = 2368; // point cloud destination port
-  param.input_param.multicast_ip_address = "";
+  param.use_gpu = use_gpu;
 
-  param.input_param.use_ptc_connected = true;  // true: use PTC connected, false: recv correction from local file
-  param.input_param.correction_file_path = "Your correction file path";
-  param.input_param.firetimes_path = "Your firetime file path";
+  if (use_pcap) {
+    std::cout << "Running in PCAP replay mode from: " << pcap_path << std::endl;
+    if (correction_path.empty()) {
+        std::cerr << "Warning: --pcap is used, but --correction path is not provided. "
+                  << "The SDK might fail to initialize or decode data correctly without a correction file." << std::endl;
+    }
+    if (firetimes_path.empty()) {
+        std::cerr << "Warning: --pcap is used, but --firetimes path is not provided. "
+                  << "The SDK might fail to initialize or decode data correctly without a firetimes file." << std::endl;
+    }
 
-  param.input_param.host_ip_address = ""; // point cloud destination ip, local ip
-  param.input_param.fault_message_port = 9348; // fault message destination port
-
-#elif defined (SERIAL_PARSER_TEST)
-  param.input_param.source_type = DATA_FROM_SERIAL;
-  param.input_param.rs485_com = "Your serial port name for receiving point cloud";
-  param.input_param.rs232_com = "Your serial port name for sending cmd";
-  param.input_param.point_cloud_baudrate = 3125000;
-  param.input_param.correction_file_path = "Your correction file path";
-
-#elif defined (PCAP_PARSER_TEST)
-  param.input_param.source_type = DATA_FROM_PCAP;
-  param.input_param.pcap_path = "Your pcap file path";
-  param.input_param.correction_file_path = "Your correction file path";
-  param.input_param.firetimes_path = "Your firetime file path";
+    param.input_param.source_type = DATA_FROM_PCAP;
+    param.input_param.pcap_path = pcap_path;
+    param.input_param.correction_file_path = correction_path;
+    param.input_param.firetimes_path = firetimes_path;
 
 
-  param.decoder_param.pcap_play_synchronization = true;
-  param.decoder_param.pcap_play_in_loop = false; // pcap palyback
+    param.decoder_param.pcap_play_synchronization = true;
+    param.decoder_param.pcap_play_in_loop = false; // pcap palyback
+  } else {
+    param.input_param.source_type = DATA_FROM_LIDAR;
+    param.input_param.device_ip_address = "192.168.1.201";  // lidar ip
+    param.input_param.ptc_port = 9347; // lidar ptc port
+    param.input_param.udp_port = 2368; // point cloud destination port
+    param.input_param.multicast_ip_address = "";
 
-#elif defined (EXTERNAL_INPUT_PARSER_TEST)
-  param.input_param.source_type = DATA_FROM_ROS_PACKET;
-  param.input_param.correction_file_path = "Your correction file path";
-  param.input_param.firetimes_path = "Your firetime file path";
-
-#elif defined (LIDAR_PARSER_TCP_TEST)
-  param.input_param.source_type = DATA_FROM_LIDAR_TCP;
-  param.input_param.device_ip_address = "192.168.1.201";  // lidar ip
-  param.input_param.device_tcp_src_port = 5121; // lidar pointcloud tcp port
-  param.input_param.ptc_port = 9347; // lidar ptc port
-  param.input_param.use_ptc_connected = true;  // true: use PTC connected, false: recv correction from local file
-  param.input_param.correction_file_path = "Your correction file path";
-  param.input_param.firetimes_path = "Your firetime file path";
-#endif
+    param.input_param.host_ip_address = ""; // point cloud destination ip, local ip
+    param.input_param.fault_message_port = 9348; // fault message destination port
+    if (!correction_path.empty()) {
+        param.input_param.use_ptc_connected = false;
+        param.input_param.correction_file_path = correction_path;
+        param.input_param.firetimes_path = firetimes_path;
+    } else {
+        param.input_param.use_ptc_connected = true;
+        param.input_param.correction_file_path = "Your correction file path";
+        param.input_param.firetimes_path = "Your firetime file path";
+    }
+  }
 
   param.decoder_param.enable_packet_loss_tool = false;
   param.decoder_param.socket_buffer_size = 262144000;
