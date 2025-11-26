@@ -108,7 +108,10 @@ void lidarCallback(const LidarDecodedFrame<PointXYZIT>  &frame) {
   printf("frame:%d points:%u packet:%u start time:%lf end time:%lf\n",frame.frame_index, frame.points_num, frame.packet_num, frame.frame_start_timestamp, frame.frame_end_timestamp);  
   pcl::PointCloud<PointXYZIT>::Ptr pcl_pointcloud(new pcl::PointCloud<PointXYZIT>);
   mex_viewer.lock();
-  if (frame.points_num == 0) return;
+  if (frame.points_num == 0) {
+    mex_viewer.unlock();
+    return;
+  }
   pcl_pointcloud->clear();
   pcl_pointcloud->resize(frame.points_num);
   pcl_pointcloud->points.assign(frame.points, frame.points + frame.points_num);
@@ -141,10 +144,12 @@ void lidarCallback(const LidarDecodedFrame<PointXYZIT>  &frame) {
   writer1.write(file_name3, *pcl_pointcloud, true);
 #endif    
 
-//display point cloud with pcl if define ENABLE_VIEWER
-#ifdef ENABLE_VIEWER   
+//display point cloud with pcl if define ENABLE_VIEWER   
+#ifdef ENABLE_VIEWER
   PointCloudColorHandlerGenericField<PointXYZIT> point_color_handle(pcl_pointcloud, "intensity");
-  pcl_viewer->updatePointCloud<PointXYZIT>(pcl_pointcloud, point_color_handle, "pandar");
+  pcl_viewer->removePointCloud("pandar");
+  pcl_viewer->addPointCloud<PointXYZIT>(pcl_pointcloud, point_color_handle, "pandar");
+  pcl_viewer->setPointCloudRenderingProperties(PCL_VISUALIZER_POINT_SIZE, 2, "pandar");
 #endif
 mex_viewer.unlock();
 }
