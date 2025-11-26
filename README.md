@@ -1,3 +1,18 @@
+# Oxa specific
+## Running pcl_tool on MacOS
+```shell
+brew install pcl
+git clone -b run_pcl_tool_on_mac git@github.com:kewei-lin-oxa/HesaiLidar_SDK_2.0.git
+cd HesaiLidar_SDK_2.0
+mkdir build && cd build
+cmake ../tool/
+make
+# visualise live lidar data
+./pcl_tool
+# visualise PCAP
+./pcl_tool --pcap ~/Downloads/hesai/JT128/outdoor_downward.pcap --correction ../correction/angle_correction/JT128_Angle\ Correction\ File.csv --firetimes ../correction/firetime_correction/JT128_Firetime\ Correction\ File.csv
+```
+
 # HesaiLidar_SDK_2.0
 
 [👉 Chinese version](README_CN.md)
